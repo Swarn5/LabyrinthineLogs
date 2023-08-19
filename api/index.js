@@ -4,8 +4,12 @@ const cors = require('cors');
 const { default: mongoose } = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/user');
+const Post = require('./models/Post');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const multer = require('multer');
+const uploadMiddlewar = multer({dest: 'uploads/'});
+const fs = require('fs');
 
 const salt = bcrypt.genSaltSync(10);
 const secret = 'dfmvndrktn4l6n4mbdf5jktbkvbe56bvk';
@@ -14,7 +18,7 @@ app.use(cors({credentials:true,origin:'http://localhost:3000'}));
 app.use(express.json());
 app.use(cookieParser());
 
-mongoose.connect('mongodb+srv://Swarnshekhar:UZyfHLVq38OOZtiJ@cluster0.pyvua1b.mongodb.net/');
+mongoose.connect('mongodb://Swarnshekhar:UZyfHLVq38OOZtiJ@ac-siwdeel-shard-00-00.pyvua1b.mongodb.net:27017,ac-siwdeel-shard-00-01.pyvua1b.mongodb.net:27017,ac-siwdeel-shard-00-02.pyvua1b.mongodb.net:27017/?ssl=true&replicaSet=atlas-wg4rgb-shard-0&authSource=admin&retryWrites=true&w=majority');
 
 app.post('/register', async (req,res) => {
     const {username,password} = req.body;
@@ -60,7 +64,27 @@ app.post('/logout', (req,res) => {
     res.cookie('token','').json('ok');
 });
 
+app.post('/post',uploadMiddlewar.single('file'),async (req,res) => {
+    const {originalname,path} = req.file;
+    const parts = originalname.split('.');
+    const ext = parts[parts.length - 1];
+    const newPath = path + '.' + ext;
+    fs.renameSync(path, newPath);
+
+    const {title,summary,content} = req.body;
+
+    const postDoc = await Post.create({
+        title,
+        summary,
+        content,
+        cover:newPath,
+    });
+
+    res.json(postDoc);
+});
+
 app.listen(4000);
 console.log("connected succesfully")
 //mongodb+srv://swarnshekhar5:YR1PsQ46i8OZLUla@cluster0.pyvua1b.mongodb.net/?retryWrites=true&w=majority
+//mongodb+srv://Swarnshekhar:UZyfHLVq38OOZtiJ@cluster0.pyvua1b.mongodb.net/
 // UZyfHLVq38OOZtiJ
