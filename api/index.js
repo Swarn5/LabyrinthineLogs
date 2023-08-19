@@ -17,6 +17,7 @@ const secret = 'dfmvndrktn4l6n4mbdf5jktbkvbe56bvk';
 app.use(cors({credentials:true,origin:'http://localhost:3000'}));
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(__dirname + '/uploads'));
 
 mongoose.connect('mongodb://Swarnshekhar:UZyfHLVq38OOZtiJ@ac-siwdeel-shard-00-00.pyvua1b.mongodb.net:27017,ac-siwdeel-shard-00-01.pyvua1b.mongodb.net:27017,ac-siwdeel-shard-00-02.pyvua1b.mongodb.net:27017/?ssl=true&replicaSet=atlas-wg4rgb-shard-0&authSource=admin&retryWrites=true&w=majority');
 
@@ -71,17 +72,28 @@ app.post('/post',uploadMiddlewar.single('file'),async (req,res) => {
     const newPath = path + '.' + ext;
     fs.renameSync(path, newPath);
 
-    const {title,summary,content} = req.body;
-
-    const postDoc = await Post.create({
+    const {token} = req.cookies;
+    jwt.verify(token,secret,{},async (err,info) => {
+        if (err) throw err;
+        const {title,summary,content} = req.body;
+        const postDoc = await Post.create({
         title,
         summary,
         content,
         cover:newPath,
+        author:info.id,
+        });
+    res.json(postDoc);
     });
 
-    res.json(postDoc);
+    
 });
+
+app.get('/post',async (req,res) => {
+    res.json(await Post.find()
+    .populate('author',['username'])
+    .sort({createdAt: -1}));
+})
 
 app.listen(4000);
 console.log("connected succesfully")
